@@ -3,6 +3,7 @@ from datetime import datetime
 from .. import errors
 from .. import utils
 from ..constants import DEFAULT_DATA_CHUNK_SIZE
+from ..models.checkpoints import Checkpoint
 from ..types import CancellableStream
 from ..types import ContainerConfig
 from ..types import EndpointConfig
@@ -1089,7 +1090,8 @@ class ContainerApiMixin:
         self._raise_for_status(res)
 
     @utils.check_resource('container')
-    def start(self, container, *args, **kwargs):
+    def start(self, container, checkpoint=None, checkpoint_dir=None,
+              *args, **kwargs):
         """
         Start a container. Similar to the ``docker start`` command, but
         doesn't support attach options.
@@ -1116,6 +1118,13 @@ class ContainerApiMixin:
             ...     command='/bin/sleep 30')
             >>> client.api.start(container=container.get('Id'))
         """
+        params = {}
+        if checkpoint:
+            if isinstance(checkpoint, Checkpoint):
+                checkpoint = checkpoint.id
+            params["checkpoint"] = checkpoint
+        if checkpoint_dir:
+            params['checkpoint-dir'] = checkpoint_dir
         if args or kwargs:
             raise errors.DeprecatedMethod(
                 'Providing configuration in the start() method is no longer '
@@ -1123,7 +1132,7 @@ class ContainerApiMixin:
                 'instead.'
             )
         url = self._url("/containers/{0}/start", container)
-        res = self._post(url)
+        res = self._post(url, params=params)
         self._raise_for_status(res)
 
     @utils.check_resource('container')
@@ -1337,3 +1346,40 @@ class ContainerApiMixin:
 
         res = self._post(url, timeout=timeout, params=params)
         return self._result(res, True)
+
+    @utils.check_resource('container')
+    def container_checkpoints(self, container, checkpoint_dir=None):
+        params = {}
+        if checkpoint_dir:
+            params["dir"] = checkpoint_dir
+        url = self._url("/containers/{0}/checkpoints", container)
+        res = self._get(url, params=params)
+        return self._result(res, True)
+
+    @utils.check_resource('container')
+    def container_remove_checkpoint(self, container, checkpoint,
+                                    checkpoint_dir=None):
+        params = {}
+        if checkpoint_dir:
+            params["dir"] = checkpoint_dir
+        url = self._url(
+            "/containers/{0}/checkpoints/{1}",
+            container,
+            checkpoint
+        )
+        res = self._delete(url, params=params)
+        self._raise_for_status(res)
+
+    @utils.check_resource('container')
+    def container_create_checkpoint(self, container, checkpoint,
+                                    checkpoint_dir=None,
+                                    leave_running=False):
+        data = {
+            "CheckpointID": checkpoint,
+            "Exit": not leave_running,
+        }
+        if checkpoint_dir:
+            data["CheckpointDir"] = checkpoint_dir
+        url = self._url("/containers/{0}/checkpoints", container)
+        res = self._post_json(url, data=data)
+        self._raise_for_status(res)

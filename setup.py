@@ -38,9 +38,10 @@ with codecs.open('./README.md', encoding='utf-8') as readme_md:
     long_description = readme_md.read()
 
 setup(
-    name="docker",
+    name="docker-with-criu",
     use_scm_version={
-        'write_to': 'docker/_version.py'
+        'write_to': 'docker/_version.py',
+        'local_scheme': 'no-local-version'
     },
     description="A Python library for the Docker Engine API.",
     long_description=long_description,

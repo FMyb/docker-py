@@ -205,3 +205,7 @@ class ContextNotFound(DockerException):
 
     def __str__(self):
         return (f"context '{self.name}' not found")
+
+
+class CheckpointNotFound(NotFound):
+    pass
