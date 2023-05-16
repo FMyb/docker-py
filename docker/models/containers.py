@@ -12,6 +12,7 @@ from ..types import HostConfig
 from ..utils import version_gte
 from .images import Image
 from .resource import Collection, Model
+from .checkpoints import CheckpointCollection
 
 
 class Container(Model):
@@ -261,6 +262,13 @@ class Container(Model):
         """
         return self.client.api.get_archive(self.id, path,
                                            chunk_size, encode_stream)
+
+    def get_checkpoints(self, checkpoint_dir=None):
+        return CheckpointCollection(
+            container_id=self.id,
+            checkpoint_dir=checkpoint_dir,
+            client=self.client,
+        )
 
     def kill(self, signal=None):
         """
